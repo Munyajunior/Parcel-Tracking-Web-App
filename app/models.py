@@ -30,6 +30,6 @@ class PackageRoute(Base):
     parcel_id = Column(String, ForeignKey("packages.parcel_id"))
     latitude = Column(Float, nullable=False)
     longitude = Column(Float, nullable=False)
-    timestamp = Column(DateTime, default=datetime.utcnow)
+    timestamp = Column(DateTime, default=datetime.now)
 
     package = relationship("Package", back_populates="routes")
