@@ -3,7 +3,7 @@ from sqlalchemy.orm import Session
 from ..database import get_db
 from ..crud import update_package_location, get_package_routes
 from ..schemas import RouteResponse
-from ..models import PackageRoute
+from ..services.websocket import websocket_manager
 
 router = APIRouter()
 
@@ -17,8 +17,10 @@ def get_route(parcel_id: str, db: Session = Depends(get_db)):
 
 @router.websocket("/ws/{parcel_id}")
 async def websocket_tracking(websocket: WebSocket, parcel_id: str, db: Session = Depends(get_db)):
-    await websocket.accept()
-    while True:
-        latest_route = db.query(PackageRoute).filter(PackageRoute.parcel_id == parcel_id).order_by(PackageRoute.timestamp.desc()).first()
-        if latest_route:
-            await websocket.send_json({"latitude": latest_route.latitude, "longitude": latest_route.longitude})
+    await websocket_manager.connect(websocket, parcel_id)
+    try:
+        await websocket_manager.broadcast_location(parcel_id, db)
+    except Exception as e:
+        print(f"WebSocket error: {e}")
+    finally:
+        websocket_manager.disconnect(websocket, parcel_id)
